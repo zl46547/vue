@@ -21,6 +21,7 @@ Vue.prototype.$mount = function (
 ): Component {
   el = el && query(el)
 
+  // 对 el 做了限制，Vue 不能挂载在 body、html 这样的根节点上。
   /* istanbul ignore if */
   if (el === document.body || el === document.documentElement) {
     process.env.NODE_ENV !== 'production' && warn(
@@ -31,6 +32,8 @@ Vue.prototype.$mount = function (
 
   const options = this.$options
   // resolve template/el and convert to render function
+  // 解析template/el并转换为render函数
+  // 如果没有定义 render 方法，则会把 el 或者 template 字符串转换成 render 方法
   if (!options.render) {
     let template = options.template
     if (template) {
@@ -86,6 +89,7 @@ Vue.prototype.$mount = function (
  * Get outerHTML of elements, taking care
  * of SVG elements in IE as well.
  */
+// 获取元素的outerHTML，同时在IE中处理SVG元素
 function getOuterHTML (el: Element): string {
   if (el.outerHTML) {
     return el.outerHTML

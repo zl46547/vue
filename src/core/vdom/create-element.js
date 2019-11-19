@@ -25,6 +25,7 @@ const ALWAYS_NORMALIZE = 2
 
 // wrapper function for providing a more flexible interface
 // without getting yelled at by flow
+// createElement 方法实际上是对 _createElement 方法的封装，它允许传入的参数更加灵活，在处理这些参数后，调用真正创建 VNode 的函数 _createElement
 export function createElement (
   context: Component,
   tag: any,
@@ -44,6 +45,16 @@ export function createElement (
   return _createElement(context, tag, data, children, normalizationType)
 }
 
+/**
+ *
+ * @param context VNode 的上下文环境,它是 Component 类型
+ * @param tag 表示标签，它可以是一个字符串，也可以是一个 Component
+ * @param data 表示 VNode 的数据，它是一个 VNodeData 类型，可以在 flow/vnode.js 中找到它的定义
+ * @param children 表示当前 VNode 的子节点，它是任意类型的，它接下来需要被规范为标准的 VNode 数组
+ * @param normalizationType 表示子节点规范的类型，类型不同规范的方法也就不一样，它主要是参考 render 函数是编译生成的还是用户手写的。
+ * @returns {*}
+ * @private
+ */
 export function _createElement (
   context: Component,
   tag?: string | Class<Component> | Function | Object,
@@ -87,6 +98,8 @@ export function _createElement (
     data.scopedSlots = { default: children[0] }
     children.length = 0
   }
+  // 这里根据 normalizationType 的不同，调用了 normalizeChildren(children) 和 simpleNormalizeChildren(children) 方法，
+  // 它们的定义都在 src/core/vdom/helpers/normalzie-children.js 中
   if (normalizationType === ALWAYS_NORMALIZE) {
     children = normalizeChildren(children)
   } else if (normalizationType === SIMPLE_NORMALIZE) {

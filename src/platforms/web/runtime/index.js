@@ -34,6 +34,10 @@ extend(Vue.options.components, platformComponents)
 Vue.prototype.__patch__ = inBrowser ? patch : noop
 
 // public mount method
+/**
+ * @param el 它表示挂载的元素，可以是字符串，也可以是 DOM 对象，如果是字符串在浏览器环境下会调用 query 方法转换成 DOM 对象的
+ * @param hydrating 它表示和服务端渲染相关，在浏览器环境下我们不需要传第二个参数
+ */
 Vue.prototype.$mount = function (
   el?: string | Element,
   hydrating?: boolean
