@@ -26,6 +26,13 @@ const weexFactoryPlugin = {
 }
 
 const aliases = require('./alias')
+/**
+ * 它先把 resolve 函数传入的参数 p 通过 / 做了分割成数组，然后取数组第一个元素设置为 base。
+ * 以 web-runtime-cjs 配置为例，它的 entry 是 resolve('web/entry-runtime.js')
+ * 参数 p 是 web/entry-runtime.js，那么 base 则为 web。
+ * base 并不是实际的路径，它的真实路径借助了别名的配置，我们来看一下别名配置的代码，在 scripts/alias 中
+ * @param p
+ */
 const resolve = p => {
   const base = p.split('/')[0]
   if (aliases[base]) {
@@ -35,8 +42,20 @@ const resolve = p => {
   }
 }
 
+/**
+ * 列举了一些 Vue.js 构建的配置
+ * 对于单个配置，它是遵循 Rollup 的构建规则的。其中
+ * entry 属性表示构建的入口 JS 文件地址，
+ * dest 属性表示构建后的 JS 文件地址。
+ * format 属性表示构建的格式，
+ * cjs 表示构建出来的文件遵循 CommonJS 规范，
+ * es 表示构建出来的文件遵循 ES Module 规范。
+ * umd 表示构建出来的文件遵循 UMD 规范。
+ *
+ */
 const builds = {
   // Runtime only (CommonJS). Used by bundlers e.g. Webpack & Browserify
+  // 运行时编译(CommonJS)。用于捆绑包，如Webpack和Browserify
   'web-runtime-cjs-dev': {
     entry: resolve('web/entry-runtime.js'),
     dest: resolve('dist/vue.runtime.common.dev.js'),
@@ -52,6 +71,7 @@ const builds = {
     banner
   },
   // Runtime+compiler CommonJS build (CommonJS)
+  // 运行时+编译器CommonJS构建(CommonJS)
   'web-full-cjs-dev': {
     entry: resolve('web/entry-runtime-with-compiler.js'),
     dest: resolve('dist/vue.common.dev.js'),
@@ -76,6 +96,7 @@ const builds = {
     banner
   },
   // Runtime+compiler ES modules build (for bundlers)
+  // 仅在运行时构建ES模块(用于绑定程序)
   'web-full-esm': {
     entry: resolve('web/entry-runtime-with-compiler.js'),
     dest: resolve('dist/vue.esm.js'),
@@ -84,6 +105,7 @@ const builds = {
     banner
   },
   // Runtime+compiler ES modules build (for direct import in browser)
+  // 运行时+编译器ES模块构建(用于在浏览器中直接导入)
   'web-full-esm-browser-dev': {
     entry: resolve('web/entry-runtime-with-compiler.js'),
     dest: resolve('dist/vue.esm.browser.js'),
@@ -94,6 +116,7 @@ const builds = {
     banner
   },
   // Runtime+compiler ES modules build (for direct import in browser)
+  // 运行时+编译器ES模块构建(用于在浏览器中直接导入)
   'web-full-esm-browser-prod': {
     entry: resolve('web/entry-runtime-with-compiler.js'),
     dest: resolve('dist/vue.esm.browser.min.js'),
@@ -104,6 +127,7 @@ const builds = {
     banner
   },
   // runtime-only build (Browser)
+  // 运行时只构建(浏览器)
   'web-runtime-dev': {
     entry: resolve('web/entry-runtime.js'),
     dest: resolve('dist/vue.runtime.js'),
@@ -112,6 +136,7 @@ const builds = {
     banner
   },
   // runtime-only production build (Browser)
+  // 仅运行时生产版本(浏览器)
   'web-runtime-prod': {
     entry: resolve('web/entry-runtime.js'),
     dest: resolve('dist/vue.runtime.min.js'),
@@ -120,6 +145,7 @@ const builds = {
     banner
   },
   // Runtime+compiler development build (Browser)
+  // 运行时+编译器开发构建(浏览器)
   'web-full-dev': {
     entry: resolve('web/entry-runtime-with-compiler.js'),
     dest: resolve('dist/vue.js'),
@@ -129,6 +155,7 @@ const builds = {
     banner
   },
   // Runtime+compiler production build  (Browser)
+  // 运行时+编译器生产构建(浏览器)
   'web-full-prod': {
     entry: resolve('web/entry-runtime-with-compiler.js'),
     dest: resolve('dist/vue.min.js'),
@@ -138,6 +165,7 @@ const builds = {
     banner
   },
   // Web compiler (CommonJS).
+  // Web编译器。
   'web-compiler': {
     entry: resolve('web/entry-compiler.js'),
     dest: resolve('packages/vue-template-compiler/build.js'),
@@ -145,6 +173,7 @@ const builds = {
     external: Object.keys(require('../packages/vue-template-compiler/package.json').dependencies)
   },
   // Web compiler (UMD for in-browser use).
+  // Web编译器(浏览器内使用的UMD)。
   'web-compiler-browser': {
     entry: resolve('web/entry-compiler.js'),
     dest: resolve('packages/vue-template-compiler/browser.js'),
@@ -154,6 +183,7 @@ const builds = {
     plugins: [node(), cjs()]
   },
   // Web server renderer (CommonJS).
+  // Web服务器渲像器。
   'web-server-renderer-dev': {
     entry: resolve('web/entry-server-renderer.js'),
     dest: resolve('packages/vue-server-renderer/build.dev.js'),
@@ -189,6 +219,7 @@ const builds = {
     external: Object.keys(require('../packages/vue-server-renderer/package.json').dependencies)
   },
   // Weex runtime factory
+  // Weex运行时工厂
   'weex-factory': {
     weex: true,
     entry: resolve('weex/entry-runtime-factory.js'),
@@ -197,6 +228,7 @@ const builds = {
     plugins: [weexFactoryPlugin]
   },
   // Weex runtime framework (CommonJS).
+  // Weex运行时框架(CommonJS)。
   'weex-framework': {
     weex: true,
     entry: resolve('weex/entry-framework.js'),
@@ -204,6 +236,7 @@ const builds = {
     format: 'cjs'
   },
   // Weex compiler (CommonJS). Used by Weex's Webpack loader.
+  // Weex编译器(CommonJS)。用于Weex的Webpack加载器。
   'weex-compiler': {
     weex: true,
     entry: resolve('weex/entry-compiler.js'),
