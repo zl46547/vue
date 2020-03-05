@@ -55,6 +55,11 @@ export function initLifecycle (vm: Component) {
   vm._isBeingDestroyed = false
 }
 
+/**
+ * _update 的核心就是调用 vm.__patch__ 方法，这个方法实际上在不同的平台，
+ * 比如 web 和 weex 上的定义是不一样的，因此在 web 平台中它的定义在 src/platforms/web/runtime/index.js 中
+ * @param Vue
+ */
 export function lifecycleMixin (Vue: Class<Component>) {
   Vue.prototype._update = function (vnode: VNode, hydrating?: boolean) {
     const vm: Component = this
@@ -80,11 +85,13 @@ export function lifecycleMixin (Vue: Class<Component>) {
       vm.$el.__vue__ = vm
     }
     // if parent is an HOC, update its $el as well
+    // 如果parent是一个HOC，那么也更新它的$el
     if (vm.$vnode && vm.$parent && vm.$vnode === vm.$parent._vnode) {
       vm.$parent.$el = vm.$el
     }
     // updated hook is called by the scheduler to ensure that children are
     // updated in a parent's updated hook.
+    // 调度器调用updated钩子，以确保在父类更新的钩子中更新子类。
   }
 
   Vue.prototype.$forceUpdate = function () {

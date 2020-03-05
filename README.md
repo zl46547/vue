@@ -1,19 +1,11 @@
 <p align="center"><a href="https://vuejs.org" target="_blank" rel="noopener noreferrer"><img width="100" src="https://vuejs.org/images/logo.png" alt="Vue logo"></a></p>
 
 <h1 align="center"><a href="https://ustbhuangyi.github.io/vue-analysis/v2/prepare/" target="_blank">Vue.js源码解读</a></h2>
+<h3>文档地址</h3>
+<a href="https://ustbhuangyi.github.io/vue-analysis">https://ustbhuangyi.github.io/vue-analysis</a>
 
-Vue.js is an MIT-licensed open source project with its ongoing development made possible entirely by the support of these awesome [backers](https://github.com/vuejs/vue/blob/dev/BACKERS.md). If you'd like to join them, please consider:
-
-- [Become a backer or sponsor on Patreon](https://www.patreon.com/evanyou).
-- [Become a backer or sponsor on Open Collective](https://opencollective.com/vuejs).
-- [One-time donation via PayPal or crypto-currencies.](https://vuejs.org/support-vuejs/#One-time-Donations)
-
-#### What's the difference between Patreon and OpenCollective?
-
-Funds donated via Patreon go directly to support Evan You's full-time work on Vue.js. Funds donated via OpenCollective are managed with transparent expenses and will be used for compensating work and expenses for core team members or sponsoring community events. Your name/logo will receive proper recognition and exposure by donating on either platform.
-
-<h3 align="center">Special Sponsors</h3>
 <!--special start-->
+
 
 <p align="center">
   <a href="https://stdlib.com/" target="_blank">

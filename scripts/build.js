@@ -13,7 +13,7 @@ if (!fs.existsSync('dist')) {
  */
 let builds = require('./config').getAllBuilds()
 // filter builds via command line arg
-// 过滤器通过命令行构建
+// 通过命令行过滤builds
 if (process.argv[2]) {
   const filters = process.argv[2].split(',')
   builds = builds.filter(b => {
