@@ -88,11 +88,11 @@ function flushSchedulerQueue () {
   for (index = 0; index < queue.length; index++) {
     watcher = queue[index]
     if (watcher.before) {
-      watcher.before()
+      watcher.before() // 更新之前
     }
     id = watcher.id
     has[id] = null
-    watcher.run()
+    watcher.run() // 执行watcher
     // in dev build, check and stop circular updates.
     if (process.env.NODE_ENV !== 'production' && has[id] != null) {
       circular[id] = (circular[id] || 0) + 1
@@ -118,7 +118,7 @@ function flushSchedulerQueue () {
 
   // call component updated and activated hooks
   callActivatedHooks(activatedQueue)
-  callUpdatedHooks(updatedQueue)
+  callUpdatedHooks(updatedQueue) // 更新后调用update
 
   // devtool hook
   /* istanbul ignore if */
@@ -163,9 +163,11 @@ function callActivatedHooks (queue) {
  */
 export function queueWatcher (watcher: Watcher) {
   const id = watcher.id
+  // 过滤watcher 多个属性依赖同一个watcher
   if (has[id] == null) {
     has[id] = true
     if (!flushing) {
+      // 将watcher放入队列中
       queue.push(watcher)
     } else {
       // if already flushing, splice the watcher based on its id
@@ -184,6 +186,8 @@ export function queueWatcher (watcher: Watcher) {
         flushSchedulerQueue()
         return
       }
+
+      // 在下一个tick中刷新watcher队列
       nextTick(flushSchedulerQueue)
     }
   }

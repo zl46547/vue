@@ -31,9 +31,9 @@ function _traverse (val: any, seen: SimpleSet) {
   }
   if (isA) {
     i = val.length
-    while (i--) _traverse(val[i], seen)
+    while (i--) _traverse(val[i], seen)  // 循环数组
   } else {
-    keys = Object.keys(val)
+    keys = Object.keys(val)  // 循环对象
     i = keys.length
     while (i--) _traverse(val[keys[i]], seen)
   }

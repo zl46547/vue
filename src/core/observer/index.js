@@ -46,12 +46,15 @@ export class Observer {
     def(value, '__ob__', this)
     if (Array.isArray(value)) {
       if (hasProto) {
+        // 修改数据的原型方法
         protoAugment(value, arrayMethods)
       } else {
         copyAugment(value, arrayMethods, arrayKeys)
       }
+      // 深度观察数组中的每一项
       this.observeArray(value)
     } else {
+      // 重新定义对象的数据类型
       this.walk(value)
     }
   }
@@ -60,6 +63,7 @@ export class Observer {
    * Walk through all properties and convert them into
    * getter/setters. This method should only be called when
    * value type is Object.
+   * 遍历所有的key，调用 defineReactive 重新对象的属性
    */
   walk (obj: Object) {
     const keys = Object.keys(obj)
@@ -69,7 +73,7 @@ export class Observer {
   }
 
   /**
-   * Observe a list of Array items.
+   * 循环每一项，继续观测
    */
   observeArray (items: Array<any>) {
     for (let i = 0, l = items.length; i < l; i++) {
@@ -108,13 +112,15 @@ function copyAugment (target: Object, src: Object, keys: Array<string>) {
  * or the existing observer if the value already has one.
  */
 export function observe (value: any, asRootData: ?boolean): Observer | void {
+  // 如果不是对象，就return
   if (!isObject(value) || value instanceof VNode) {
     return
   }
   let ob: Observer | void
+  // 如果已经监听过了，就不会重复监听
   if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
     ob = value.__ob__
-  } else if (
+  } else if (// 如果没有被观测，会去创建一个Observer实例
     shouldObserve &&
     !isServerRendering() &&
     (Array.isArray(value) || isPlainObject(value)) &&
@@ -153,16 +159,16 @@ export function defineReactive (
     val = obj[key]
   }
 
-  let childOb = !shallow && observe(val)
+  let childOb = !shallow && observe(val) // 递归观测
   Object.defineProperty(obj, key, {
     enumerable: true,
     configurable: true,
-    get: function reactiveGetter () {
+    get: function reactiveGetter () { // 数据的取值
       const value = getter ? getter.call(obj) : val
       if (Dep.target) {
-        dep.depend()
+        dep.depend() // 收集依赖 watcher
         if (childOb) {
-          childOb.dep.depend()
+          childOb.dep.depend() // 收集依赖
           if (Array.isArray(value)) {
             dependArray(value)
           }
@@ -170,7 +176,7 @@ export function defineReactive (
       }
       return value
     },
-    set: function reactiveSetter (newVal) {
+    set: function reactiveSetter (newVal) { // 数据的设置值
       const value = getter ? getter.call(obj) : val
       /* eslint-disable no-self-compare */
       if (newVal === value || (newVal !== newVal && value !== value)) {
@@ -188,7 +194,7 @@ export function defineReactive (
         val = newVal
       }
       childOb = !shallow && observe(newVal)
-      dep.notify()
+      dep.notify() // 触发数据对应的依赖进行更新
     }
   })
 }

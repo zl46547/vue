@@ -1,6 +1,6 @@
 /*!
  * Vue.js v2.6.10
- * (c) 2014-2019 Evan You
+ * (c) 2014-2020 Evan You
  * Released under the MIT License.
  */
 (function (global, factory) {
@@ -1969,7 +1969,7 @@
     isUsingMicroTask = true;
   } else if (typeof setImmediate !== 'undefined' && isNative(setImmediate)) {
     // Fallback to setImmediate.
-    // Techinically it leverages the (macro) task queue,
+    // Technically it leverages the (macro) task queue,
     // but it is still a better choice than setTimeout.
     timerFunc = function () {
       setImmediate(flushCallbacks);
@@ -2058,7 +2058,7 @@
       warn(
         "Property \"" + key + "\" must be accessed with \"$data." + key + "\" because " +
         'properties starting with "$" or "_" are not proxied in the Vue instance to ' +
-        'prevent conflicts with Vue internals' +
+        'prevent conflicts with Vue internals. ' +
         'See: https://vuejs.org/v2/api/#data',
         target
       );
@@ -2348,6 +2348,12 @@
   // normalization is needed - if any child is an Array, we flatten the whole
   // thing with Array.prototype.concat. It is guaranteed to be only 1-level deep
   // because functional components already normalize their own children.
+  /**
+   * simpleNormalizeChildren 方法调用场景是 render 函数是编译生成的。
+   * 理论上编译生成的 children 都已经是 VNode 类型的，但这里有一个例外，
+   * 就是 functional component 函数式组件返回的是一个数组而不是一个根节点，
+   * 所以会通过 Array.prototype.concat 方法把整个 children 数组打平，让它的深度只有一层。
+   */
   function simpleNormalizeChildren (children) {
     for (var i = 0; i < children.length; i++) {
       if (Array.isArray(children[i])) {
@@ -2361,6 +2367,20 @@
   // e.g. <template>, <slot>, v-for, or when the children is provided by user
   // with hand-written render functions / JSX. In such cases a full normalization
   // is needed to cater to all possible types of children values.
+  /**
+   * normalizeChildren 方法的调用场景有 2 种，
+   * 一个场景是 render 函数是用户手写的，当 children 只有一个节点的时候，
+   * Vue.js 从接口层面允许用户把 children 写成基础类型用来创建单个简单的文本节点，
+   * 这种情况会调用 createTextVNode 创建一个文本节点的 VNode；
+   * 另一个场景是当编译 slot、v-for 的时候会产生嵌套数组的情况，会调用 normalizeArrayChildren 方法
+   */
+
+  /**
+   * normalizeArrayChildren 接收 2 个参数，children 表示要规范的子节点，nestedIndex 表示嵌套的索引，
+   * 因为单个 child 可能是一个数组类型。 normalizeArrayChildren 主要的逻辑就是遍历 children，获得单个节点 c，然后对 c 的类型判断，如果是一个数组类型，则递归调用 normalizeArrayChildren; 如果是基础类型，则通过 createTextVNode 方法转换成 VNode 类型；否则就已经是 VNode 类型了，如果 children 是一个列表并且列表还存在嵌套的情况，则根据 nestedIndex 去更新它的 key。这里需要注意一点，在遍历的过程中，对这 3 种情况都做了如下处理：如果存在两个连续的 text 节点，会把它们合并成一个 text 节点。
+
+   经过对 children 的规范化，children 变成了一个类型为 VNode 的 Array。
+   */
   function normalizeChildren (children) {
     return isPrimitive(children)
       ? [createTextVNode(children)]
@@ -2918,7 +2938,7 @@
       if (typeof key === 'string' && key) {
         baseObj[values[i]] = values[i + 1];
       } else if (key !== '' && key !== null) {
-        // null is a speical value for explicitly removing a binding
+        // null is a special value for explicitly removing a binding
         warn(
           ("Invalid value for dynamic directive argument (expected string or null): " + key),
           this
@@ -3341,6 +3361,7 @@
 
   // wrapper function for providing a more flexible interface
   // without getting yelled at by flow
+  // createElement 方法实际上是对 _createElement 方法的封装，它允许传入的参数更加灵活，在处理这些参数后，调用真正创建 VNode 的函数 _createElement
   function createElement (
     context,
     tag,
@@ -3360,6 +3381,16 @@
     return _createElement(context, tag, data, children, normalizationType)
   }
 
+  /**
+   *
+   * @param context VNode 的上下文环境,它是 Component 类型
+   * @param tag 表示标签，它可以是一个字符串，也可以是一个 Component
+   * @param data 表示 VNode 的数据，它是一个 VNodeData 类型，可以在 flow/vnode.js 中找到它的定义
+   * @param children 表示当前 VNode 的子节点，它是任意类型的，它接下来需要被规范为标准的 VNode 数组
+   * @param normalizationType 表示子节点规范的类型，类型不同规范的方法也就不一样，它主要是参考 render 函数是编译生成的还是用户手写的。
+   * @returns {*}
+   * @private
+   */
   function _createElement (
     context,
     tag,
@@ -3402,6 +3433,8 @@
       data.scopedSlots = { default: children[0] };
       children.length = 0;
     }
+    // 这里根据 normalizationType 的不同，调用了 normalizeChildren(children) 和 simpleNormalizeChildren(children) 方法，
+    // 它们的定义都在 src/core/vdom/helpers/normalzie-children.js 中
     if (normalizationType === ALWAYS_NORMALIZE) {
       children = normalizeChildren(children);
     } else if (normalizationType === SIMPLE_NORMALIZE) {
@@ -3413,6 +3446,12 @@
       ns = (context.$vnode && context.$vnode.ns) || config.getTagNamespace(tag);
       if (config.isReservedTag(tag)) {
         // platform built-in elements
+        if (isDef(data) && isDef(data.nativeOn)) {
+          warn(
+            ("The .native modifier for v-on is only valid on components but it was used on <" + tag + ">."),
+            context
+          );
+        }
         vnode = new VNode(
           config.parsePlatformTagName(tag), data, children,
           undefined, undefined, context
@@ -3488,9 +3527,13 @@
     // so that we get proper render context inside it.
     // args order: tag, data, children, normalizationType, alwaysNormalize
     // internal version is used by render functions compiled from templates
+    // 将createElement函数绑定到这个实例，这样我们就可以获得适当的上下文。
+    // args顺序:标签，数据，子元素，normalizationType, alwaysNormalize
+    // template模板编译的 render 函数使用
     vm._c = function (a, b, c, d) { return createElement(vm, a, b, c, d, false); };
     // normalization is always applied for the public version, used in
     // user-written render functions.
+    // 用户手写 render 方法使用的
     vm.$createElement = function (a, b, c, d) { return createElement(vm, a, b, c, d, true); };
 
     // $attrs & $listeners are exposed for easier HOC creation.
@@ -3538,7 +3581,7 @@
       // render self
       var vnode;
       try {
-        // There's no need to maintain a stack becaues all render fns are called
+        // There's no need to maintain a stack because all render fns are called
         // separately from one another. Nested component's render fns are called
         // when parent component is patched.
         currentRenderingInstance = vm;
@@ -3926,6 +3969,11 @@
     vm._isBeingDestroyed = false;
   }
 
+  /**
+   * _update 的核心就是调用 vm.__patch__ 方法，这个方法实际上在不同的平台，
+   * 比如 web 和 weex 上的定义是不一样的，因此在 web 平台中它的定义在 src/platforms/web/runtime/index.js 中
+   * @param Vue
+   */
   function lifecycleMixin (Vue) {
     Vue.prototype._update = function (vnode, hydrating) {
       var vm = this;
@@ -3951,11 +3999,13 @@
         vm.$el.__vue__ = vm;
       }
       // if parent is an HOC, update its $el as well
+      // 如果parent是一个HOC，那么也更新它的$el
       if (vm.$vnode && vm.$parent && vm.$vnode === vm.$parent._vnode) {
         vm.$parent.$el = vm.$el;
       }
       // updated hook is called by the scheduler to ensure that children are
       // updated in a parent's updated hook.
+      // 调度器调用updated钩子，以确保在父类更新的钩子中更新子类。
     };
 
     Vue.prototype.$forceUpdate = function () {
@@ -4039,6 +4089,7 @@
 
     var updateComponent;
     /* istanbul ignore if */
+    // vm._render 方法先生成虚拟 Node，最终调用 vm._update 更新 DOM
     if (config.performance && mark) {
       updateComponent = function () {
         var name = vm._name;
@@ -4065,6 +4116,8 @@
     // we set this to vm._watcher inside the watcher's constructor
     // since the watcher's initial patch may call $forceUpdate (e.g. inside child
     // component's mounted hook), which relies on vm._watcher being already defined
+    // 我们把它设为vm._watcher在watcher的构造函数中，因为watcher的初始化可能调用$forceUpdate(例如在子组件的挂载钩子中)，它依赖于vm._watcher
+    // Watcher 在这里起到两个作用，一个是初始化的时候会执行回调函数，另一个是当 vm 实例中的监测的数据发生变化的时候执行回调函数
     new Watcher(vm, updateComponent, noop, {
       before: function before () {
         if (vm._isMounted && !vm._isDestroyed) {
@@ -4076,6 +4129,8 @@
 
     // manually mounted instance, call mounted on self
     // mounted is called for render-created child components in its inserted hook
+    // 函数最后判断为根节点的时候设置 vm._isMounted 为 true， 表示这个实例已经挂载了，同时执行 mounted 钩子函数。
+    // 这里注意 vm.$vnode 表示 Vue 实例的父虚拟 Node，所以它为 Null 则表示当前是根 Vue 的实例
     if (vm.$vnode == null) {
       vm._isMounted = true;
       callHook(vm, 'mounted');
@@ -4692,9 +4747,11 @@
 
   function initData (vm) {
     var data = vm.$options.data;
+    // 判断是不是一个函数
     data = vm._data = typeof data === 'function'
       ? getData(data, vm)
       : data || {};
+      // 如果不是一个函数，就报警告
     if (!isPlainObject(data)) {
       data = {};
       warn(
@@ -4708,6 +4765,7 @@
     var props = vm.$options.props;
     var methods = vm.$options.methods;
     var i = keys.length;
+    // 判断data、props、methods是否有相同的key
     while (i--) {
       var key = keys[i];
       {
@@ -4725,6 +4783,7 @@
           vm
         );
       } else if (!isReserved(key)) {
+        // 代理，使的可以通过this.[属性]访问data或methods，是的this.message = vm._data.message
         proxy(vm, "_data", key);
       }
     }
@@ -4951,6 +5010,10 @@
 
   var uid$3 = 0;
 
+  /**
+   * Vue 初始化主要就干了几件事情，合并配置，初始化生命周期，初始化事件中心，初始化渲染，初始化 data、props、computed、watcher 等等
+   * @param Vue
+   */
   function initMixin (Vue) {
     Vue.prototype._init = function (options) {
       var vm = this;
@@ -4972,6 +5035,7 @@
         // optimize internal component instantiation
         // since dynamic options merging is pretty slow, and none of the
         // internal component options needs special treatment.
+        // 优化内部组件实例，因为动态选项合并非常慢，而且没有一个内部组件选项需要特殊处理。
         initInternalComponent(vm, options);
       } else {
         vm.$options = mergeOptions(
@@ -5001,7 +5065,7 @@
         mark(endTag);
         measure(("vue " + (vm._name) + " init"), startTag, endTag);
       }
-
+      // 如果有 el 属性，则调用 vm.$mount 方法挂载 vm，挂载的目标就是把模板渲染成最终的 DOM
       if (vm.$options.el) {
         vm.$mount(vm.$options.el);
       }
@@ -5072,6 +5136,9 @@
     this._init(options);
   }
 
+  /**
+   * 给 Vue 的 prototype 上扩展一些方法
+   */
   initMixin(Vue);
   stateMixin(Vue);
   eventsMixin(Vue);
@@ -5384,7 +5451,9 @@
 
     // exposed util methods.
     // NOTE: these are not considered part of the public API - avoid relying on
+    // NOTE: 这些不被认为是公共API的一部分——避免依赖
     // them unless you are aware of the risk.
+    // Vue.util 暴露的方法最好不要依赖，因为它可能经常会发生变化，是不稳定的
     Vue.util = {
       warn: warn,
       extend: extend,
@@ -6110,7 +6179,7 @@
       }
     }
 
-    function removeVnodes (parentElm, vnodes, startIdx, endIdx) {
+    function removeVnodes (vnodes, startIdx, endIdx) {
       for (; startIdx <= endIdx; ++startIdx) {
         var ch = vnodes[startIdx];
         if (isDef(ch)) {
@@ -6221,7 +6290,7 @@
         refElm = isUndef(newCh[newEndIdx + 1]) ? null : newCh[newEndIdx + 1].elm;
         addVnodes(parentElm, refElm, newCh, newStartIdx, newEndIdx, insertedVnodeQueue);
       } else if (newStartIdx > newEndIdx) {
-        removeVnodes(parentElm, oldCh, oldStartIdx, oldEndIdx);
+        removeVnodes(oldCh, oldStartIdx, oldEndIdx);
       }
     }
 
@@ -6313,7 +6382,7 @@
           if (isDef(oldVnode.text)) { nodeOps.setTextContent(elm, ''); }
           addVnodes(elm, null, ch, 0, ch.length - 1, insertedVnodeQueue);
         } else if (isDef(oldCh)) {
-          removeVnodes(elm, oldCh, 0, oldCh.length - 1);
+          removeVnodes(oldCh, 0, oldCh.length - 1);
         } else if (isDef(oldVnode.text)) {
           nodeOps.setTextContent(elm, '');
         }
@@ -6542,7 +6611,7 @@
 
           // destroy old node
           if (isDef(parentElm)) {
-            removeVnodes(parentElm, [oldVnode], 0, 0);
+            removeVnodes([oldVnode], 0, 0);
           } else if (isDef(oldVnode.tag)) {
             invokeDestroyHook(oldVnode);
           }
@@ -8438,6 +8507,11 @@
 
   // the directive module should be applied last, after all
   // built-in modules have been applied.
+  /**
+   * 该方法的定义是调用 createPatchFunction 方法的返回值，这里传入了一个对象，包含 nodeOps 参数和 modules 参数。
+   * 其中，nodeOps 封装了一系列 DOM 操作的方法，modules 定义了一些模块的钩子函数的实现
+   * @type {T[] | string}
+   */
   var modules = platformModules.concat(baseModules);
 
   var patch = createPatchFunction({ nodeOps: nodeOps, modules: modules });
@@ -9027,9 +9101,20 @@
   extend(Vue.options.components, platformComponents);
 
   // install platform patch function
+  /**
+   * 可以看到，甚至在 web 平台上，是否是服务端渲染也会对这个方法产生影响。因为在服务端渲染中，没有真实的浏览器 DOM 环境，
+   * 所以不需要把 VNode 最终转换成 DOM，因此是一个空函数，而在浏览器端渲染中，它指向了 patch 方法，
+   * 它的定义在 src/platforms/web/runtime/patch.js中
+   * @type {Function}
+   * @private
+   */
   Vue.prototype.__patch__ = inBrowser ? patch : noop;
 
   // public mount method
+  /**
+   * @param el 它表示挂载的元素，可以是字符串，也可以是 DOM 对象，如果是字符串在浏览器环境下会调用 query 方法转换成 DOM 对象的
+   * @param hydrating 它表示和服务端渲染相关，在浏览器环境下我们不需要传第二个参数
+   */
   Vue.prototype.$mount = function (
     el,
     hydrating
@@ -9248,7 +9333,7 @@
   var startTagClose = /^\s*(\/?)>/;
   var endTag = new RegExp(("^<\\/" + qnameCapture + "[^>]*>"));
   var doctype = /^<!DOCTYPE [^>]+>/i;
-  // #7298: escape - to avoid being pased as HTML comment when inlined in page
+  // #7298: escape - to avoid being passed as HTML comment when inlined in page
   var comment = /^<!\--/;
   var conditionalComment = /^<!\[/;
 
@@ -9533,7 +9618,7 @@
   /*  */
 
   var onRE = /^@|^v-on:/;
-  var dirRE = /^v-|^@|^:/;
+  var dirRE = /^v-|^@|^:|^#/;
   var forAliasRE = /([\s\S]*?)\s+(?:in|of)\s+([\s\S]*)/;
   var forIteratorRE = /,([^,\}\]]*)(?:,([^,\}\]]*))?$/;
   var stripParensRE = /^\(|\)$/g;
@@ -10157,7 +10242,7 @@
             if (el.parent && !maybeComponent(el.parent)) {
               warn$2(
                 "<template v-slot> can only appear at the root level inside " +
-                "the receiving the component",
+                "the receiving component",
                 el
               );
             }
@@ -10720,7 +10805,7 @@
 
   /*  */
 
-  var fnExpRE = /^([\w$_]+|\([^)]*?\))\s*=>|^function\s*(?:[\w$]+)?\s*\(/;
+  var fnExpRE = /^([\w$_]+|\([^)]*?\))\s*=>|^function(?:\s+[\w$]+)?\s*\(/;
   var fnInvokeRE = /\([^)]*?\);*$/;
   var simplePathRE = /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*|\['[^']*?']|\["[^"]*?"]|\[\d+]|\[[A-Za-z_$][\w$]*])*$/;
 
@@ -11489,6 +11574,8 @@
             var range = node.rawAttrsMap[name];
             if (name === 'v-for') {
               checkFor(node, ("v-for=\"" + value + "\""), warn, range);
+            } else if (name === 'v-slot' || name[0] === '#') {
+              checkFunctionParameterExpression(value, (name + "=\"" + value + "\""), warn, range);
             } else if (onRE.test(name)) {
               checkEvent(value, (name + "=\"" + value + "\""), warn, range);
             } else {
@@ -11508,9 +11595,9 @@
   }
 
   function checkEvent (exp, text, warn, range) {
-    var stipped = exp.replace(stripStringRE, '');
-    var keywordMatch = stipped.match(unaryOperatorsRE);
-    if (keywordMatch && stipped.charAt(keywordMatch.index - 1) !== '$') {
+    var stripped = exp.replace(stripStringRE, '');
+    var keywordMatch = stripped.match(unaryOperatorsRE);
+    if (keywordMatch && stripped.charAt(keywordMatch.index - 1) !== '$') {
       warn(
         "avoid using JavaScript unary operator as property name: " +
         "\"" + (keywordMatch[0]) + "\" in expression " + (text.trim()),
@@ -11562,6 +11649,19 @@
           range
         );
       }
+    }
+  }
+
+  function checkFunctionParameterExpression (exp, text, warn, range) {
+    try {
+      new Function(exp, '');
+    } catch (e) {
+      warn(
+        "invalid function parameter expression: " + (e.message) + " in\n\n" +
+        "    " + exp + "\n\n" +
+        "  Raw expression: " + (text.trim()) + "\n",
+        range
+      );
     }
   }
 
@@ -11860,6 +11960,7 @@
   ) {
     el = el && query(el);
 
+    // 对 el 做了限制，Vue 不能挂载在 body、html 这样的根节点上。
     /* istanbul ignore if */
     if (el === document.body || el === document.documentElement) {
       warn(
@@ -11869,9 +11970,11 @@
     }
 
     var options = this.$options;
-    // resolve template/el and convert to render function
+    // 判断是否有render函数
+    // 如果没有定义 render 方法，则会把 el 或者 template 字符串转换成 render 方法
     if (!options.render) {
       var template = options.template;
+      // 判断是否有template
       if (template) {
         if (typeof template === 'string') {
           if (template.charAt(0) === '#') {
@@ -11892,7 +11995,8 @@
           }
           return this
         }
-      } else if (el) {
+      }
+      else if (el) {
         template = getOuterHTML(el);
       }
       if (template) {
@@ -11900,7 +12004,7 @@
         if (config.performance && mark) {
           mark('compile');
         }
-
+        // 把template转成render
         var ref = compileToFunctions(template, {
           outputSourceRange: "development" !== 'production',
           shouldDecodeNewlines: shouldDecodeNewlines,
@@ -11927,6 +12031,7 @@
    * Get outerHTML of elements, taking care
    * of SVG elements in IE as well.
    */
+  // 获取元素的outerHTML，同时在IE中处理SVG元素
   function getOuterHTML (el) {
     if (el.outerHTML) {
       return el.outerHTML
