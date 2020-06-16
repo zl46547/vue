@@ -4763,9 +4763,11 @@
 
   function initData (vm) {
     var data = vm.$options.data;
+    // 判断是不是一个函数
     data = vm._data = typeof data === 'function'
       ? getData(data, vm)
       : data || {};
+      // 如果不是一个函数，就报警告
     if (!isPlainObject(data)) {
       data = {};
       warn(
@@ -4779,6 +4781,7 @@
     var props = vm.$options.props;
     var methods = vm.$options.methods;
     var i = keys.length;
+    // 判断data、props、methods是否有相同的key
     while (i--) {
       var key = keys[i];
       {
@@ -4796,6 +4799,7 @@
           vm
         );
       } else if (!isReserved(key)) {
+        // 代理，使的可以通过this.[属性]访问data或methods，是的this.message = vm._data.message
         proxy(vm, "_data", key);
       }
     }
@@ -11990,11 +11994,12 @@
     }
 
     var options = this.$options;
-    // resolve template/el and convert to render function
+    // 判断是否有render函数
     // 解析template/el并转换为render函数
     // 如果没有定义 render 方法，则会把 el 或者 template 字符串转换成 render 方法
     if (!options.render) {
       var template = options.template;
+      // 判断是否有template
       if (template) {
         if (typeof template === 'string') {
           if (template.charAt(0) === '#') {
@@ -12015,7 +12020,8 @@
           }
           return this
         }
-      } else if (el) {
+      }
+      else if (el) {
         template = getOuterHTML(el);
       }
       if (template) {

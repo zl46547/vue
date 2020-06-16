@@ -20,6 +20,9 @@ Vue.prototype.$mount = function (
   el?: string | Element,
   hydrating?: boolean
 ): Component {
+  // el接收字符串或者dom对象
+  // 如果是字符串，就调用原生document.querySelector，返回dom对象；
+  // 如果已经是dom对象，直接返回；
   el = el && query(el)
 
   // 对 el 做了限制，Vue 不能挂载在 body、html 这样的根节点上。
@@ -32,11 +35,11 @@ Vue.prototype.$mount = function (
   }
 
   const options = this.$options
-  // resolve template/el and convert to render function
-  // 解析template/el并转换为render函数
+  // 判断是否有render函数
   // 如果没有定义 render 方法，则会把 el 或者 template 字符串转换成 render 方法
   if (!options.render) {
     let template = options.template
+    // 如果定义了template对象
     if (template) {
       if (typeof template === 'string') {
         if (template.charAt(0) === '#') {
@@ -50,6 +53,7 @@ Vue.prototype.$mount = function (
           }
         }
       } else if (template.nodeType) {
+        // 如果template是DOM对象
         template = template.innerHTML
       } else {
         if (process.env.NODE_ENV !== 'production') {
@@ -57,7 +61,8 @@ Vue.prototype.$mount = function (
         }
         return this
       }
-    } else if (el) {
+    }else if (el) {
+      // 未定义template对象
       template = getOuterHTML(el)
     }
     if (template) {
@@ -65,7 +70,11 @@ Vue.prototype.$mount = function (
       if (process.env.NODE_ENV !== 'production' && config.performance && mark) {
         mark('compile')
       }
+<<<<<<< HEAD
       // template 字符串转换成 render 方法
+=======
+      // 把template转成render
+>>>>>>> 0d36cc5095c1543e38c0c8652211317f4fa55fc2
       const { render, staticRenderFns } = compileToFunctions(template, {
         outputSourceRange: process.env.NODE_ENV !== 'production',
         shouldDecodeNewlines,

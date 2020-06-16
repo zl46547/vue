@@ -67,7 +67,7 @@ export default class Watcher {
     this.cb = cb
     this.id = ++uid // uid for batching
     this.active = true
-    this.dirty = this.lazy // for lazy watchers
+    this.dirty = this.lazy // 如果是计算属性，默认dirty就是true
     this.deps = []
     this.newDeps = []
     this.depIds = new Set()
@@ -75,7 +75,7 @@ export default class Watcher {
     this.expression = process.env.NODE_ENV !== 'production'
       ? expOrFn.toString()
       : ''
-    // parse expression for getter
+    // 如果expOrFn是一个字符串，则会将expOrFn包装成一个函数
     if (typeof expOrFn === 'function') {
       this.getter = expOrFn
     } else {
@@ -90,20 +90,20 @@ export default class Watcher {
         )
       }
     }
-    this.value = this.lazy
+    this.value = this.lazy // 如果是计算属性（lazy=true）就等与undefined，这样就不会执行计算属性进行重新计算
       ? undefined
-      : this.get()
+      : this.get() // watch对应的方法
   }
 
   /**
    * Evaluate the getter, and re-collect dependencies.
    */
   get () {
-    pushTarget(this)
+    pushTarget(this) // 将watcher放到全局上
     let value
     const vm = this.vm
     try {
-      value = this.getter.call(vm, vm)
+      value = this.getter.call(vm, vm) // 取值 会进行依赖收集
     } catch (e) {
       if (this.user) {
         handleError(e, vm, `getter for watcher "${this.expression}"`)
@@ -113,7 +113,7 @@ export default class Watcher {
     } finally {
       // "touch" every property so they are all tracked as
       // dependencies for deep watching
-      if (this.deep) {
+      if (this.deep) { // 深层监听
         traverse(value)
       }
       popTarget()
@@ -163,12 +163,12 @@ export default class Watcher {
    */
   update () {
     /* istanbul ignore else */
-    if (this.lazy) {
+    if (this.lazy) { // 计算属性
       this.dirty = true
-    } else if (this.sync) {
+    } else if (this.sync) { // 同步watcher
       this.run()
     } else {
-      queueWatcher(this)
+      queueWatcher(this) // 将watcher放入队列中
     }
   }
 

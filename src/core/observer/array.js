@@ -37,8 +37,9 @@ methodsToPatch.forEach(function (method) {
         inserted = args.slice(2)
         break
     }
+    // 对新增的数据也进行观测
     if (inserted) ob.observeArray(inserted)
-    // notify change
+    // 通知视图更新
     ob.dep.notify()
     return result
   })

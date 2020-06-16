@@ -34,6 +34,9 @@ export default class Dep {
     }
   }
 
+  /**
+   * 通知存储的依赖更新
+   */
   notify () {
     // stabilize the subscriber list first
     const subs = this.subs.slice()
@@ -44,7 +47,7 @@ export default class Dep {
       subs.sort((a, b) => a.id - b.id)
     }
     for (let i = 0, l = subs.length; i < l; i++) {
-      subs[i].update()
+      subs[i].update() // 调用依赖中的update方法
     }
   }
 }
