@@ -14,7 +14,10 @@ if (!fs.existsSync('dist')) {
 let builds = require('./config').getAllBuilds()
 // filter builds via command line arg
 // 通过命令行过滤builds
-if (process.argv[2]) {
+// "build": "node scripts/build.js",
+// "build:ssr": "npm run build -- web-runtime-cjs,web-server-renderer",
+// "build:weex": "npm run build -- weex",
+if (process.argv[2]) {// web-runtime-cjs,web-server-renderer || week
   const filters = process.argv[2].split(',')
   builds = builds.filter(b => {
     return filters.some(f => b.output.file.indexOf(f) > -1 || b._name.indexOf(f) > -1)

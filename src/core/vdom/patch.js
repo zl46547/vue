@@ -141,6 +141,7 @@ export function createPatchFunction (backend) {
     }
 
     vnode.isRootInsert = !nested // for transition enter check
+    // 如果为 true 则直接结束
     if (createComponent(vnode, insertedVnodeQueue, parentElm, refElm)) {
       return
     }
@@ -209,6 +210,7 @@ export function createPatchFunction (backend) {
 
   function createComponent (vnode, insertedVnodeQueue, parentElm, refElm) {
     let i = vnode.data
+    // 如果vnode 是一个组件 VNode，那么条件会满足，并且得到 i 就是 init 钩子函数
     if (isDef(i)) {
       const isReactivated = isDef(vnode.componentInstance) && i.keepAlive
       if (isDef(i = i.hook) && isDef(i = i.init)) {
@@ -697,6 +699,12 @@ export function createPatchFunction (backend) {
     }
   }
 
+  /**
+   * @parmas oldVnode 旧的 VNode 节点
+   * @parmas vnode 执行 _render 后返回的 VNode 的节点
+   * @parmas hydrating 是否是服务端渲染
+   * @parmas removeOnly 是给 transition-group 用的
+   */
   return function patch (oldVnode, vnode, hydrating, removeOnly) {
     if (isUndef(vnode)) {
       if (isDef(oldVnode)) invokeDestroyHook(oldVnode)

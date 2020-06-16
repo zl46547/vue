@@ -36,6 +36,7 @@ export function initExtend (Vue: GlobalAPI) {
     Sub.prototype = Object.create(Super.prototype)
     Sub.prototype.constructor = Sub
     Sub.cid = cid++
+    // 扩展 options
     Sub.options = mergeOptions(
       Super.options,
       extendOptions
@@ -45,9 +46,11 @@ export function initExtend (Vue: GlobalAPI) {
     // For props and computed properties, we define the proxy getters on
     // the Vue instances at extension time, on the extended prototype. This
     // avoids Object.defineProperty calls for each instance created.
+    // 初始化props
     if (Sub.options.props) {
       initProps(Sub)
     }
+    // 初始化computed
     if (Sub.options.computed) {
       initComputed(Sub)
     }
@@ -75,6 +78,7 @@ export function initExtend (Vue: GlobalAPI) {
     Sub.sealedOptions = extend({}, Sub.options)
 
     // cache constructor
+    // 对于这个 Sub 构造函数做了缓存，避免多次执行 Vue.extend 的时候对同一个子组件重复构造
     cachedCtors[SuperId] = Sub
     return Sub
   }

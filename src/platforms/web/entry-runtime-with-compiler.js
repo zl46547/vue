@@ -15,6 +15,7 @@ const idToTemplate = cached(id => {
 })
 
 const mount = Vue.prototype.$mount
+
 Vue.prototype.$mount = function (
   el?: string | Element,
   hydrating?: boolean
@@ -64,7 +65,7 @@ Vue.prototype.$mount = function (
       if (process.env.NODE_ENV !== 'production' && config.performance && mark) {
         mark('compile')
       }
-
+      // template 字符串转换成 render 方法
       const { render, staticRenderFns } = compileToFunctions(template, {
         outputSourceRange: process.env.NODE_ENV !== 'production',
         shouldDecodeNewlines,
@@ -82,6 +83,7 @@ Vue.prototype.$mount = function (
       }
     }
   }
+  // 调用原先原型上的 $mount 方法挂载
   return mount.call(this, el, hydrating)
 }
 

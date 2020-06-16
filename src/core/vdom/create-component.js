@@ -108,7 +108,7 @@ export function createComponent (
   if (isUndef(Ctor)) {
     return
   }
-
+  // baseCtor 实际上就是 Vue
   const baseCtor = context.$options._base
 
   // plain options object: turn it into a constructor
@@ -187,6 +187,7 @@ export function createComponent (
 
   // return a placeholder vnode
   const name = Ctor.options.name || tag
+  // 实例化一个 vnode,组件的 vnode 是没有 children
   const vnode = new VNode(
     `vue-component-${Ctor.cid}${name ? `-${name}` : ''}`,
     data, undefined, undefined, undefined, context,

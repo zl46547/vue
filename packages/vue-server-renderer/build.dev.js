@@ -3123,7 +3123,7 @@ var startTagOpen = new RegExp(("^<" + qnameCapture));
 var startTagClose = /^\s*(\/?)>/;
 var endTag = new RegExp(("^<\\/" + qnameCapture + "[^>]*>"));
 var doctype = /^<!DOCTYPE [^>]+>/i;
-// #7298: escape - to avoid being pased as HTML comment when inlined in page
+// #7298: escape - to avoid being passed as HTML comment when inlined in page
 var comment = /^<!\--/;
 var conditionalComment = /^<!\[/;
 
@@ -3556,7 +3556,7 @@ function parseString (chr) {
 /*  */
 
 var onRE = /^@|^v-on:/;
-var dirRE = /^v-|^@|^:/;
+var dirRE = /^v-|^@|^:|^#/;
 var forAliasRE = /([\s\S]*?)\s+(?:in|of)\s+([\s\S]*)/;
 var forIteratorRE = /,([^,\}\]]*)(?:,([^,\}\]]*))?$/;
 var stripParensRE = /^\(|\)$/g;
@@ -4180,7 +4180,7 @@ function processSlotContent (el) {
           if (el.parent && !maybeComponent(el.parent)) {
             warn$1(
               "<template v-slot> can only appear at the root level inside " +
-              "the receiving the component",
+              "the receiving component",
               el
             );
           }
@@ -4782,7 +4782,7 @@ var baseOptions = {
 
 /*  */
 
-var fnExpRE = /^([\w$_]+|\([^)]*?\))\s*=>|^function\s*(?:[\w$]+)?\s*\(/;
+var fnExpRE = /^([\w$_]+|\([^)]*?\))\s*=>|^function(?:\s+[\w$]+)?\s*\(/;
 var fnInvokeRE = /\([^)]*?\);*$/;
 var simplePathRE = /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*|\['[^']*?']|\["[^"]*?"]|\[\d+]|\[[A-Za-z_$][\w$]*])*$/;
 
@@ -6022,6 +6022,8 @@ function checkNode (node, warn) {
           var range = node.rawAttrsMap[name];
           if (name === 'v-for') {
             checkFor(node, ("v-for=\"" + value + "\""), warn, range);
+          } else if (name === 'v-slot' || name[0] === '#') {
+            checkFunctionParameterExpression(value, (name + "=\"" + value + "\""), warn, range);
           } else if (onRE.test(name)) {
             checkEvent(value, (name + "=\"" + value + "\""), warn, range);
           } else {
@@ -6041,9 +6043,9 @@ function checkNode (node, warn) {
 }
 
 function checkEvent (exp, text, warn, range) {
-  var stipped = exp.replace(stripStringRE, '');
-  var keywordMatch = stipped.match(unaryOperatorsRE);
-  if (keywordMatch && stipped.charAt(keywordMatch.index - 1) !== '$') {
+  var stripped = exp.replace(stripStringRE, '');
+  var keywordMatch = stripped.match(unaryOperatorsRE);
+  if (keywordMatch && stripped.charAt(keywordMatch.index - 1) !== '$') {
     warn(
       "avoid using JavaScript unary operator as property name: " +
       "\"" + (keywordMatch[0]) + "\" in expression " + (text.trim()),
@@ -6095,6 +6097,19 @@ function checkExpression (exp, text, warn, range) {
         range
       );
     }
+  }
+}
+
+function checkFunctionParameterExpression (exp, text, warn, range) {
+  try {
+    new Function(exp, '');
+  } catch (e) {
+    warn(
+      "invalid function parameter expression: " + (e.message) + " in\n\n" +
+      "    " + exp + "\n\n" +
+      "  Raw expression: " + (text.trim()) + "\n",
+      range
+    );
   }
 }
 
@@ -6373,6 +6388,12 @@ var compileToFunctions = ref.compileToFunctions;
 // normalization is needed - if any child is an Array, we flatten the whole
 // thing with Array.prototype.concat. It is guaranteed to be only 1-level deep
 // because functional components already normalize their own children.
+/**
+ * simpleNormalizeChildren 方法调用场景是 render 函数是编译生成的。
+ * 理论上编译生成的 children 都已经是 VNode 类型的，但这里有一个例外，
+ * 就是 functional component 函数式组件返回的是一个数组而不是一个根节点，
+ * 所以会通过 Array.prototype.concat 方法把整个 children 数组打平，让它的深度只有一层。
+ */
 function simpleNormalizeChildren (children) {
   for (var i = 0; i < children.length; i++) {
     if (Array.isArray(children[i])) {
@@ -6386,6 +6407,20 @@ function simpleNormalizeChildren (children) {
 // e.g. <template>, <slot>, v-for, or when the children is provided by user
 // with hand-written render functions / JSX. In such cases a full normalization
 // is needed to cater to all possible types of children values.
+/**
+ * normalizeChildren 方法的调用场景有 2 种，
+ * 一个场景是 render 函数是用户手写的，当 children 只有一个节点的时候，
+ * Vue.js 从接口层面允许用户把 children 写成基础类型用来创建单个简单的文本节点，
+ * 这种情况会调用 createTextVNode 创建一个文本节点的 VNode；
+ * 另一个场景是当编译 slot、v-for 的时候会产生嵌套数组的情况，会调用 normalizeArrayChildren 方法
+ */
+
+/**
+ * normalizeArrayChildren 接收 2 个参数，children 表示要规范的子节点，nestedIndex 表示嵌套的索引，
+ * 因为单个 child 可能是一个数组类型。 normalizeArrayChildren 主要的逻辑就是遍历 children，获得单个节点 c，然后对 c 的类型判断，如果是一个数组类型，则递归调用 normalizeArrayChildren; 如果是基础类型，则通过 createTextVNode 方法转换成 VNode 类型；否则就已经是 VNode 类型了，如果 children 是一个列表并且列表还存在嵌套的情况，则根据 nestedIndex 去更新它的 key。这里需要注意一点，在遍历的过程中，对这 3 种情况都做了如下处理：如果存在两个连续的 text 节点，会把它们合并成一个 text 节点。
+
+ 经过对 children 的规范化，children 变成了一个类型为 VNode 的 Array。
+ */
 function normalizeChildren (children) {
   return isPrimitive(children)
     ? [createTextVNode(children)]
@@ -6799,6 +6834,7 @@ var ALWAYS_NORMALIZE = 2;
 
 // wrapper function for providing a more flexible interface
 // without getting yelled at by flow
+// createElement 方法实际上是对 _createElement 方法的封装，它允许传入的参数更加灵活，在处理这些参数后，调用真正创建 VNode 的函数 _createElement
 function createElement (
   context,
   tag,
@@ -6818,6 +6854,16 @@ function createElement (
   return _createElement(context, tag, data, children, normalizationType)
 }
 
+/**
+ *
+ * @param context VNode 的上下文环境,它是 Component 类型
+ * @param tag 表示标签，它可以是一个字符串，也可以是一个 Component
+ * @param data 表示 VNode 的数据，它是一个 VNodeData 类型，可以在 flow/vnode.js 中找到它的定义
+ * @param children 表示当前 VNode 的子节点，它是任意类型的，它接下来需要被规范为标准的 VNode 数组
+ * @param normalizationType 表示子节点规范的类型，类型不同规范的方法也就不一样，它主要是参考 render 函数是编译生成的还是用户手写的。
+ * @returns {*}
+ * @private
+ */
 function _createElement (
   context,
   tag,
@@ -6860,6 +6906,8 @@ function _createElement (
     data.scopedSlots = { default: children[0] };
     children.length = 0;
   }
+  // 这里根据 normalizationType 的不同，调用了 normalizeChildren(children) 和 simpleNormalizeChildren(children) 方法，
+  // 它们的定义都在 src/core/vdom/helpers/normalzie-children.js 中
   if (normalizationType === ALWAYS_NORMALIZE) {
     children = normalizeChildren(children);
   } else if (normalizationType === SIMPLE_NORMALIZE) {
@@ -7223,7 +7271,7 @@ function bindDynamicKeys (baseObj, values) {
     if (typeof key === 'string' && key) {
       baseObj[values[i]] = values[i + 1];
     } else if (key !== '' && key !== null) {
-      // null is a speical value for explicitly removing a binding
+      // null is a special value for explicitly removing a binding
       warn(
         ("Invalid value for dynamic directive argument (expected string or null): " + key),
         this

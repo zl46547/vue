@@ -195,6 +195,7 @@ export function mountComponent (
     }
   } else {
     updateComponent = () => {
+      // vm._render 方法先生成虚拟 Node，最终调用 vm._update 更新 DOM
       vm._update(vm._render(), hydrating)
     }
   }

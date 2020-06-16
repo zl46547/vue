@@ -49,6 +49,7 @@ Vue.prototype.$mount = function (
   el?: string | Element,
   hydrating?: boolean
 ): Component {
+  // 如果el是字符串在浏览器环境下会调用 query 方法转换成 DOM 对象
   el = el && inBrowser ? query(el) : undefined
   return mountComponent(this, el, hydrating)
 }

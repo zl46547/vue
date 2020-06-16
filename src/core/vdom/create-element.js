@@ -106,9 +106,11 @@ export function _createElement (
     children = simpleNormalizeChildren(children)
   }
   let vnode, ns
+  // 对 tag 做判断，如果是 string 类型，则接着判断
   if (typeof tag === 'string') {
     let Ctor
     ns = (context.$vnode && context.$vnode.ns) || config.getTagNamespace(tag)
+    // 如果是内置的一些节点，则直接创建一个普通 VNode
     if (config.isReservedTag(tag)) {
       // platform built-in elements
       if (process.env.NODE_ENV !== 'production' && isDef(data) && isDef(data.nativeOn)) {
@@ -122,21 +124,23 @@ export function _createElement (
         undefined, undefined, context
       )
     } else if ((!data || !data.pre) && isDef(Ctor = resolveAsset(context.$options, 'components', tag))) {
-      // component
+      // 如果是为已注册的组件名，则通过 createComponent 创建一个组件类型的 VNode
       vnode = createComponent(Ctor, data, context, children, tag)
     } else {
       // unknown or unlisted namespaced elements
       // check at runtime because it may get assigned a namespace when its
       // parent normalizes children
+      // 否则创建一个未知的标签的 VNode
       vnode = new VNode(
         tag, data, children,
         undefined, undefined, context
       )
     }
   } else {
-    // direct component options / constructor
+    // 如果是 tag 一个 Component 类型，则直接调用 createComponent 创建一个组件类型的 VNode 节点。
     vnode = createComponent(tag, data, context, children)
   }
+
   if (Array.isArray(vnode)) {
     return vnode
   } else if (isDef(vnode)) {
