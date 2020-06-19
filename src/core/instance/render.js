@@ -16,6 +16,7 @@ import VNode, { createEmptyVNode } from '../vdom/vnode'
 
 import { isUpdatingChildComponent } from './lifecycle'
 
+/*初始化render*/
 export function initRender (vm: Component) {
   vm._vnode = null // the root of the child tree
   vm._staticTrees = null // v-once cached trees
@@ -28,7 +29,7 @@ export function initRender (vm: Component) {
   // so that we get proper render context inside it.
   // args order: tag, data, children, normalizationType, alwaysNormalize
   // internal version is used by render functions compiled from templates
-  // 将createElement函数绑定到这个实例，这样我们就可以获得适当的上下文。
+  /*将createElement函数绑定到该实例上，该vm存在闭包中，不可修改，vm实例则固定。这样我们就可以得到正确的上下文渲染*/
   // args顺序:标签，数据，子元素，normalizationType, alwaysNormalize
   // template模板编译的 render 函数使用
   vm._c = (a, b, c, d) => createElement(vm, a, b, c, d, false)
@@ -70,6 +71,7 @@ export function renderMixin (Vue: Class<Component>) {
     return nextTick(fn, this)
   }
 
+  /*_render渲染函数，返回一个VNode节点*/
   Vue.prototype._render = function (): VNode {
     const vm: Component = this
     const { render, _parentVnode } = vm.$options

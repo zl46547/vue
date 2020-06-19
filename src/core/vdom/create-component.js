@@ -33,6 +33,7 @@ import {
 } from 'weex/runtime/recycle-list/render-component-template'
 
 // inline hooks to be invoked on component VNodes during patch
+/*被用来在VNode组件patch期间触发的钩子函数集合*/
 const componentVNodeHooks = {
   init (vnode: VNodeWithData, hydrating: boolean): ?boolean {
     if (
@@ -44,10 +45,12 @@ const componentVNodeHooks = {
       const mountedNode: any = vnode // work around flow
       componentVNodeHooks.prepatch(mountedNode, mountedNode)
     } else {
+      // 通过 createComponentInstanceForVnode 创建一个 Vue 的实例
       const child = vnode.componentInstance = createComponentInstanceForVnode(
         vnode,
         activeInstance
       )
+      // 调用 $mount 方法挂载子组件
       child.$mount(hydrating ? vnode.elm : undefined, hydrating)
     }
   },
@@ -98,6 +101,16 @@ const componentVNodeHooks = {
 
 const hooksToMerge = Object.keys(componentVNodeHooks)
 
+/*创建一个组件节点，返回Vnode节点*/
+/**
+ * 3 个关键步骤：构造子类构造函数，安装组件钩子函数和实例化 vnode
+ * @param Ctor
+ * @param data
+ * @param context
+ * @param children
+ * @param tag
+ * @returns {*}
+ */
 export function createComponent (
   Ctor: Class<Component> | Function | Object | void,
   data: ?VNodeData,
@@ -105,19 +118,22 @@ export function createComponent (
   children: ?Array<VNode>,
   tag?: string
 ): VNode | Array<VNode> | void {
+  /*没有传组件构造类直接返回*/
   if (isUndef(Ctor)) {
     return
   }
-  // baseCtor 实际上就是 Vue
+  // baseCtor 实际上就是 Vue，_base存放了Vue,作为基类，可以在里面添加扩展
   const baseCtor = context.$options._base
 
   // plain options object: turn it into a constructor
   if (isObject(Ctor)) {
+    // STEP1：构造子类构造函数
     Ctor = baseCtor.extend(Ctor)
   }
 
   // if at this stage it's not a constructor or an async component factory,
   // reject.
+  /*如果在该阶段Ctor依然不是一个构造函数或者是一个异步组件工厂则直接返回*/
   if (typeof Ctor !== 'function') {
     if (process.env.NODE_ENV !== 'production') {
       warn(`Invalid Component definition: ${String(Ctor)}`, context)
@@ -126,6 +142,7 @@ export function createComponent (
   }
 
   // async component
+  /*处理异步组件*/
   let asyncFactory
   if (isUndef(Ctor.cid)) {
     asyncFactory = Ctor
@@ -134,6 +151,7 @@ export function createComponent (
       // return a placeholder node for async component, which is rendered
       // as a comment node but preserves all the raw information for the node.
       // the information will be used for async server-rendering and hydration.
+      /*如果这是一个异步组件则不会返回任何东西（undifiened），直接return掉，等待回调函数去触发父组件更新。s*/
       return createAsyncPlaceholder(
         asyncFactory,
         data,
@@ -183,11 +201,12 @@ export function createComponent (
   }
 
   // install component management hooks onto the placeholder node
+  // STEP2：安装组件钩子函数
   installComponentHooks(data)
 
   // return a placeholder vnode
   const name = Ctor.options.name || tag
-  // 实例化一个 vnode,组件的 vnode 是没有 children
+  // STEP3：实例化一个 vnode,组件的 vnode 是没有 children
   const vnode = new VNode(
     `vue-component-${Ctor.cid}${name ? `-${name}` : ''}`,
     data, undefined, undefined, undefined, context,
@@ -210,6 +229,8 @@ export function createComponentInstanceForVnode (
   vnode: any, // we know it's MountedComponentVNode but flow doesn't
   parent: any, // activeInstance in lifecycle state
 ): Component {
+  // _isComponent 为 true 表示它是一个组件
+  // parent 表示当前激活的组件实例
   const options: InternalComponentOptions = {
     _isComponent: true,
     _parentVnode: vnode,
@@ -221,9 +242,14 @@ export function createComponentInstanceForVnode (
     options.render = inlineTemplate.render
     options.staticRenderFns = inlineTemplate.staticRenderFns
   }
+  // vnode.componentOptions.Ctor 对应的就是子组件的构造函数
   return new vnode.componentOptions.Ctor(options)
 }
 
+/**
+ * 整个 installComponentHooks 的过程就是把 componentVNodeHooks 的钩子函数合并到 data.hook 中
+ * @param data
+ */
 function installComponentHooks (data: VNodeData) {
   const hooks = data.hook || (data.hook = {})
   for (let i = 0; i < hooksToMerge.length; i++) {
@@ -231,6 +257,7 @@ function installComponentHooks (data: VNodeData) {
     const existing = hooks[key]
     const toMerge = componentVNodeHooks[key]
     if (existing !== toMerge && !(existing && existing._merged)) {
+      // 在合并过程中，如果某个时机的钩子已经存在 data.hook 中，那么通过执行 mergeHook 函数做合并
       hooks[key] = existing ? mergeHook(toMerge, existing) : toMerge
     }
   }

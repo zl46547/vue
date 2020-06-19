@@ -34,19 +34,22 @@ export function createElement (
   normalizationType: any,
   alwaysNormalize: boolean
 ): VNode | Array<VNode> {
+  /*兼容不传data的情况*/
   if (Array.isArray(data) || isPrimitive(data)) {
     normalizationType = children
     children = data
     data = undefined
   }
+  /*如果alwaysNormalize为true，则normalizationType标记为ALWAYS_NORMALIZE*/
   if (isTrue(alwaysNormalize)) {
     normalizationType = ALWAYS_NORMALIZE
   }
+  /*创建虚拟节点*/
   return _createElement(context, tag, data, children, normalizationType)
 }
 
 /**
- *
+ * 创建虚拟节点
  * @param context VNode 的上下文环境,它是 Component 类型
  * @param tag 表示标签，它可以是一个字符串，也可以是一个 Component
  * @param data 表示 VNode 的数据，它是一个 VNodeData 类型，可以在 flow/vnode.js 中找到它的定义
@@ -62,6 +65,11 @@ export function _createElement (
   children?: any,
   normalizationType?: number
 ): VNode | Array<VNode> {
+  /*
+    如果data未定义（undefined或者null）或者是data的__ob__已经定义（代表已经被observed，上面绑定了Oberver对象），
+    https://cn.vuejs.org/v2/guide/render-function.html#约束
+    那么创建一个空节点
+  */
   if (isDef(data) && isDef((data: any).__ob__)) {
     process.env.NODE_ENV !== 'production' && warn(
       `Avoid using observed data object as vnode data: ${JSON.stringify(data)}\n` +
@@ -74,6 +82,7 @@ export function _createElement (
   if (isDef(data) && isDef(data.is)) {
     tag = data.is
   }
+  /*如果tag不存在也是创建一个空节点*/
   if (!tag) {
     // in case of component :is set to falsy value
     return createEmptyVNode()
@@ -91,6 +100,7 @@ export function _createElement (
     }
   }
   // support single function children as default scoped slot
+  /*支持默认作用域插槽*/
   if (Array.isArray(children) &&
     typeof children[0] === 'function'
   ) {
@@ -109,45 +119,50 @@ export function _createElement (
   // 对 tag 做判断，如果是 string 类型，则接着判断
   if (typeof tag === 'string') {
     let Ctor
+    /*获取tag的名字空间*/
     ns = (context.$vnode && context.$vnode.ns) || config.getTagNamespace(tag)
-    // 如果是内置的一些节点，则直接创建一个普通 VNode
+    /*判断是否是保留的标签*/
     if (config.isReservedTag(tag)) {
-      // platform built-in elements
+      // .native修饰符只能在组件上使用，原生的html标签是不能使用的
       if (process.env.NODE_ENV !== 'production' && isDef(data) && isDef(data.nativeOn)) {
         warn(
           `The .native modifier for v-on is only valid on components but it was used on <${tag}>.`,
           context
         )
       }
+      /*如果是保留的标签则创建一个相应节点*/
       vnode = new VNode(
         config.parsePlatformTagName(tag), data, children,
         undefined, undefined, context
       )
-    } else if ((!data || !data.pre) && isDef(Ctor = resolveAsset(context.$options, 'components', tag))) {
-      // 如果是为已注册的组件名，则通过 createComponent 创建一个组件类型的 VNode
+    } else if (
+      /*从vm实例的option的components中寻找该tag，存在则就是一个组件，创建相应节点，Ctor为组件的构造类*/
+      (!data || !data.pre) && isDef(Ctor = resolveAsset(context.$options, 'components', tag))) {
       vnode = createComponent(Ctor, data, context, children, tag)
     } else {
       // unknown or unlisted namespaced elements
       // check at runtime because it may get assigned a namespace when its
       // parent normalizes children
-      // 否则创建一个未知的标签的 VNode
+      // 否则创建一个未知的标签，未知的元素，在运行时检查，因为父组件可能在序列化子组件的时候分配一个名字空间*/
       vnode = new VNode(
         tag, data, children,
         undefined, undefined, context
       )
     }
   } else {
-    // 如果是 tag 一个 Component 类型，则直接调用 createComponent 创建一个组件类型的 VNode 节点。
+    /*tag不是字符串的时候则是组件的构造类*/
     vnode = createComponent(tag, data, context, children)
   }
 
   if (Array.isArray(vnode)) {
     return vnode
   } else if (isDef(vnode)) {
+    /*如果有名字空间，则递归所有子节点应用该名字空间*/
     if (isDef(ns)) applyNS(vnode, ns)
     if (isDef(data)) registerDeepBindings(data)
     return vnode
   } else {
+    /*如果vnode没有成功创建则创建空节点*/
     return createEmptyVNode()
   }
 }
