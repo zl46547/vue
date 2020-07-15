@@ -79,7 +79,7 @@ export function nextTick (cb?: Function, ctx?: Object) {
     pending = true
     timerFunc()
   }
-  // $flow-disable-line
+  // 当 nextTick 不传 cb 参数的时候，提供一个 Promise 化的调用
   if (!cb && typeof Promise !== 'undefined') {
     return new Promise(resolve => {
       _resolve = resolve

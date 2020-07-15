@@ -18,10 +18,8 @@ import type { SimpleSet } from '../util/index'
 
 let uid = 0
 
-/**
- * A watcher parses an expression, collects dependencies,
- * and fires callback when the expression value changes.
- * This is used for both the $watch() api and directives.
+/*
+    一个解析表达式，进行依赖收集的观察者，同时在表达式数据变更时触发回调函数。它被用于$watch api以及指令
  */
 export default class Watcher {
   vm: Component;
@@ -53,6 +51,7 @@ export default class Watcher {
     if (isRenderWatcher) {
       vm._watcher = this
     }
+    /*_watchers存放订阅者实例*/
     vm._watchers.push(this)
     // options
     if (options) {
@@ -75,7 +74,7 @@ export default class Watcher {
     this.expression = process.env.NODE_ENV !== 'production'
       ? expOrFn.toString()
       : ''
-    // 如果expOrFn是一个字符串，则会将expOrFn包装成一个函数
+    /*把表达式expOrFn解析成getter*/
     if (typeof expOrFn === 'function') {
       this.getter = expOrFn
     } else {
@@ -95,13 +94,20 @@ export default class Watcher {
       : this.get() // watch对应的方法
   }
 
-  /**
-   * Evaluate the getter, and re-collect dependencies.
-   */
+  /*获得getter的值并且重新进行依赖收集*/
   get () {
-    pushTarget(this) // 将watcher放到全局上
+    /*将自身watcher观察者实例设置给Dep.target，用以依赖收集。*/
+    pushTarget(this)
     let value
     const vm = this.vm
+    /*
+      执行了getter操作，看似执行了渲染操作，其实是执行了依赖收集。
+      在将Dep.target设置为自生观察者实例以后，执行getter操作。
+      譬如说现在的的data中可能有a、b、c三个数据，getter渲染需要依赖a跟c，
+      那么在执行getter的时候就会触发a跟c两个数据的getter函数，
+      在getter函数中即可判断Dep.target是否存在然后完成依赖收集，
+      将该观察者对象放入闭包中的Dep的subs中去。
+    */
     try {
       value = this.getter.call(vm, vm) // 取值 会进行依赖收集
     } catch (e) {
@@ -111,20 +117,21 @@ export default class Watcher {
         throw e
       }
     } finally {
-      // "touch" every property so they are all tracked as
-      // dependencies for deep watching
+      /*如果存在deep，则触发每个深层对象的依赖，追踪其变化*/
       if (this.deep) { // 深层监听
+        /*递归每一个对象或者数组，触发它们的getter，使得对象或数组的每一个成员都被依赖收集，形成一个“深（deep）”依赖关系*/
         traverse(value)
       }
+      /*将观察者实例从target栈中取出并设置给Dep.target*/
       popTarget()
+
+      /*清理依赖收集*/
       this.cleanupDeps()
     }
     return value
   }
 
-  /**
-   * Add a dependency to this directive.
-   */
+  /*添加一个依赖关系到Deps集合中*/
   addDep (dep: Dep) {
     const id = dep.id
     if (!this.newDepIds.has(id)) {
@@ -136,13 +143,13 @@ export default class Watcher {
     }
   }
 
-  /**
-   * Clean up for dependency collection.
-   */
+  /*清理依赖收集*/
   cleanupDeps () {
+    /*移除所有观察者对象*/
     let i = this.deps.length
     while (i--) {
       const dep = this.deps[i]
+      // 根据dep的id来清除不使用的watcher
       if (!this.newDepIds.has(dep.id)) {
         dep.removeSub(this)
       }
@@ -158,16 +165,17 @@ export default class Watcher {
   }
 
   /**
-   * Subscriber interface.
-   * Will be called when a dependency changes.
+   * 调度者接口，当依赖发生改变的时候进行回调。
    */
   update () {
     /* istanbul ignore else */
     if (this.lazy) { // 计算属性
       this.dirty = true
     } else if (this.sync) { // 同步watcher
+      /*同步则执行run直接渲染视图*/
       this.run()
     } else {
+      /*异步推送到观察者队列中，下一个tick时调用。*/
       queueWatcher(this) // 将watcher放入队列中
     }
   }

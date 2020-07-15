@@ -20,23 +20,24 @@ export default class Dep {
     this.subs = []
   }
 
+  /*添加一个观察者对象*/
   addSub (sub: Watcher) {
     this.subs.push(sub)
   }
 
+  /*移除一个观察者对象*/
   removeSub (sub: Watcher) {
     remove(this.subs, sub)
   }
 
+  /*依赖收集，当存在Dep.target的时候添加观察者对象*/
   depend () {
     if (Dep.target) {
       Dep.target.addDep(this)
     }
   }
 
-  /**
-   * 通知存储的依赖更新
-   */
+  /*通知所有订阅者*/
   notify () {
     // stabilize the subscriber list first
     const subs = this.subs.slice()
@@ -58,11 +59,13 @@ export default class Dep {
 Dep.target = null
 const targetStack = []
 
+/*将watcher观察者实例设置给Dep.target，用以依赖收集。同时将该实例存入target栈中*/
 export function pushTarget (target: ?Watcher) {
   targetStack.push(target)
   Dep.target = target
 }
 
+/*将观察者实例从target栈中取出并设置给Dep.target*/
 export function popTarget () {
   targetStack.pop()
   Dep.target = targetStack[targetStack.length - 1]

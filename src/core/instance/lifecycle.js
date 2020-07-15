@@ -213,9 +213,6 @@ export function mountComponent (
     }
   }
 
-  // we set this to vm._watcher inside the watcher's constructor
-  // since the watcher's initial patch may call $forceUpdate (e.g. inside child
-  // component's mounted hook), which relies on vm._watcher being already defined
   // 这里对该vm注册一个Watcher实例，Watcher的getter为updateComponent函数，用于触发所有渲染所需要用到的数据的getter，
   // 进行依赖收集，该Watcher实例会存在所有渲染所需数据的闭包Dep中
   // 我们把它设为vm.watcher在watcher的构造函数中，因为watcher的初始化可能调用$forceUpdate(例如在子组件的挂载钩子中)，它依赖于vm._watcher
